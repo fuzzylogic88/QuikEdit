@@ -1,13 +1,15 @@
 ﻿using ImageMagick;
 using Microsoft.Win32;
-using System.DirectoryServices.ActiveDirectory;
-using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Forms;
+
+using static QuikEdit.ImageOps;
+using System.Windows.Controls;
 
 namespace QuikEdit
 {
@@ -16,9 +18,9 @@ namespace QuikEdit
     /// </summary>
     public partial class MainWindow : Window
     {
-        private BitmapImage loadedBitmapImage;
-        public static byte[] initialState;
-        public static byte[] modifiedImage;
+        private BitmapImage initialBitmapImage;
+        public static byte[]? initialState;
+        public static byte[]? modifiedImage;
 
         public MainWindow()
         {
@@ -33,35 +35,29 @@ namespace QuikEdit
 
         private void LoadFileButton_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new();
+            Microsoft.Win32.OpenFileDialog openFileDialog = new();
             if (openFileDialog.ShowDialog() == true)
             {
-                loadedBitmapImage = new BitmapImage(new Uri(openFileDialog.FileName));
-                imageControl.Source = loadedBitmapImage;
-
-                using (MemoryStream stream = new())
-                {
-                    BitmapEncoder encoder = new JpegBitmapEncoder(); // Change the encoder based on your image format
-                    encoder.Frames.Add(BitmapFrame.Create(loadedBitmapImage));
-                    encoder.Save(stream);
-                    initialState = stream.ToArray();
-                    modifiedImage = initialState;
-                }
+                PreviewNewImage(openFileDialog.FileName);
             }
         }
 
-        static BitmapImage ByteArrayToBitmapImage(byte[] byteArray)
+        private void PreviewNewImage(string filepath)
         {
-            BitmapImage bitmapImage = new();
-            using (MemoryStream stream = new(byteArray))
+            initialBitmapImage = new BitmapImage(new Uri(filepath));
+
+            Dispatcher.Invoke(() =>
             {
-                bitmapImage.BeginInit();
-                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                bitmapImage.StreamSource = stream;
-                bitmapImage.EndInit();
-                bitmapImage.Freeze();
-            }
-            return bitmapImage;
+                imageControl.Source = initialBitmapImage;
+            });
+
+            using MemoryStream stream = new();
+            BitmapEncoder encoder = new JpegBitmapEncoder(); // Change the encoder based on your image format
+            encoder.Frames.Add(BitmapFrame.Create(initialBitmapImage));
+            encoder.Save(stream);
+
+            initialState = stream.ToArray();
+            modifiedImage = initialState;
         }
 
         private void GrayscaleCheckBox_Click(object sender, RoutedEventArgs e)
@@ -69,19 +65,20 @@ namespace QuikEdit
             try
             {
                 bool? state = GrayscaleCheckBox.IsChecked;
-                if (loadedBitmapImage != null && state.HasValue)
+                if (initialBitmapImage != null && state.HasValue)
                 {
                     if (state.Value)
                     {
                         using MagickImage image = new(initialState);
                         {
                             image.Grayscale();
-                            modifiedImage = image.Clone().ToByteArray();
-                            imageControl.Source = ByteArrayToBitmapImage(image.ToByteArray());
+                            modifiedImage = image.ToByteArray();
+                            imageControl.Source = ByteArrayToBitmapImage(modifiedImage);
                         }
                     }
                     else
                     {
+                        modifiedImage = initialState;
                         imageControl.Source = ByteArrayToBitmapImage(initialState);
                     }
                 }
@@ -97,7 +94,7 @@ namespace QuikEdit
         {
             if (modifiedImage != null)
             {
-                SaveFileDialog saveFileDialog = new()
+                Microsoft.Win32.SaveFileDialog saveFileDialog = new()
                 {
                     Filter = "BMP Files (*.bmp)|*.bmp|GIF Files (*.gif)|*.gif|JPEG Files (*.jpg;*.jpeg)|*.jpg;*.jpeg|PNG Files (*.png)|*.png|All files (*.*)|*.*"
                 };
@@ -109,36 +106,180 @@ namespace QuikEdit
                         // Save the byte array to a file with the specified image format
                         using (MemoryStream stream = new(modifiedImage))
                         {
+                            ImageFormat ift = GetImageFormatFromFileName(saveFileDialog.FileName);
+
                             using Bitmap bitmap = new(stream);
-                            bitmap.Save(saveFileDialog.FileName, GetImageFormatFromFileName(saveFileDialog.FileName));
+                            bitmap.Save(saveFileDialog.FileName, ift);
                         }
-                        MessageBox.Show("Image saved successfully.");
+                        System.Windows.MessageBox.Show("Image saved successfully.");
                     }
                     else
                     {
-                        MessageBox.Show("Image data is null or empty. Unable to save.");
+                        System.Windows.MessageBox.Show("Image data is null or empty. Unable to save.");
                     }
                 }
             }
         }
 
-        private ImageFormat GetImageFormatFromFileName(string fileName)
+
+        private void RotateLeft90Button_Click(object sender, RoutedEventArgs e)
         {
-            string extension = Path.GetExtension(fileName).ToLowerInvariant();
-            switch (extension)
+            if (modifiedImage != null)
             {
-                case ".bmp":
-                    return ImageFormat.Bmp;
-                case ".gif":
-                    return ImageFormat.Gif;
-                case ".jpg":
-                case ".jpeg":
-                    return ImageFormat.Jpeg;
-                case ".png":
-                    return ImageFormat.Png;
-                default:
-                    // Default to PNG if the extension is not recognized
-                    return ImageFormat.Png;
+                using MagickImage image = new(modifiedImage);
+                {
+                    image.Rotate(-90);
+                    modifiedImage = image.ToByteArray();
+                    initialState = modifiedImage;
+                    imageControl.Source = ByteArrayToBitmapImage(image.ToByteArray());
+                }
+            }
+        }
+
+        private void RotateRight90Button_Click(object sender, RoutedEventArgs e)
+        {
+            if (modifiedImage != null)
+            {
+                using MagickImage image = new(modifiedImage);
+                {
+                    image.Rotate(90);
+                    modifiedImage = image.ToByteArray();
+                    initialState = modifiedImage;
+                    imageControl.Source = ByteArrayToBitmapImage(image.ToByteArray());
+                }
+            }
+        }
+
+        private void LoadFilesButton_Click(object sender, RoutedEventArgs e)
+        {
+            FolderBrowserDialog folderDlg = new()
+            {
+                ShowNewFolderButton = true,
+                InitialDirectory = Environment.SpecialFolder.Desktop.ToString(),
+            };
+
+            // Show the FolderBrowserDialog.  
+            DialogResult result = folderDlg.ShowDialog();
+            if (result == System.Windows.Forms.DialogResult.OK)
+            {
+                var imgCollection = Directory.GetFiles(folderDlg.SelectedPath).Where(IsImageFile);
+                foreach (string image in imgCollection)
+                {
+                    FileCollectionListBox.Items.Add(image);
+                }
+            }
+        }
+
+        private void ConvertFilesButton_Click(object sender, RoutedEventArgs e)
+        {
+            FolderBrowserDialog folderDlg = new()
+            {
+                ShowNewFolderButton = true,
+                InitialDirectory = Environment.SpecialFolder.Desktop.ToString(),
+            };
+
+            // Show the FolderBrowserDialog.  
+            DialogResult result = new();
+            Dispatcher.Invoke(() =>
+            {
+                result = folderDlg.ShowDialog();
+            });
+
+            if (result == System.Windows.Forms.DialogResult.OK)
+            {
+                List<string> convertItems = FileCollectionListBox.Items.Cast<string>().ToList();
+
+                ProgressWindow.TotalFiles = convertItems.Count;
+                ProgressWindow.ProcessInProgress = true;
+                ProgressWindow pw = new() { Owner = this, };
+
+                pw.Show();
+
+                Task.Run(() => ConvertFiles(convertItems, folderDlg.SelectedPath));
+            }
+        }
+
+        public void ConvertFiles(List<string> convertItems, string outputPath)
+        {
+            try
+            {
+                string fileType = ".jpg"; //temp
+
+                foreach (string image in convertItems)
+                {
+                    using MagickImage img = new(image);
+                    {
+                        string outFName = FilenameGenerator(outputPath, Path.GetFileNameWithoutExtension(image) + fileType);
+
+                        if (!string.IsNullOrEmpty(outFName))
+                        {
+                            img.Quality = 100;
+                            img.Write(outFName);
+                        }
+                    }
+                    ProgressWindow.CurrentFile = FileCollectionListBox.Items.IndexOf(image);
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+            finally
+            {
+                Thread.Sleep(1000);
+                ProgressWindow.ProcessInProgress = false;
+            }
+        }
+
+        /// <summary>
+        /// Generates a unique filename when provided destination folder and desired name.
+        /// </summary>
+        /// <param name="folder">Destination folder of file</param>
+        /// <param name="fileName">Desired file name</param>
+        /// <param name="maxAttempts">Maximum number of attempts to achieve uniqueness</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public static string FilenameGenerator(string folder, string fileName, int maxAttempts = 1024)
+        {
+            var fileBase = Path.GetFileNameWithoutExtension(fileName);
+            var ext = Path.GetExtension(fileName);
+
+            // Build hash set of filenames for performance
+            var files = new HashSet<string>(Directory.GetFiles(folder));
+
+            for (var index = 0; index < maxAttempts; index++)
+            {
+                // First try with the original filename, else try incrementally adding an index
+                var name = (index == 0)
+                    ? fileName
+                    : string.Format("{0} ({1}){2}", fileBase, index, ext);
+
+                // Check if exists
+                var fullPath = Path.Combine(folder, name);
+                if (files.Contains(fullPath))
+                    continue;
+
+                // Try to create the file
+                try
+                {
+                    return fullPath;
+                }
+                catch (DirectoryNotFoundException) { throw; }
+                catch (DriveNotFoundException) { throw; }
+                catch (IOException)
+                {
+                    // Will occur if another thread created a file with this name since we created the HashSet.
+                    // Ignore this and just try with the next filename.
+                }
+            }
+            throw new Exception("Could not create unique filename in " + maxAttempts + " attempts");
+        }
+
+        private void FileCollectionListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (FileCollectionListBox.SelectedIndex != -1)
+            {
+                PreviewNewImage((string)FileCollectionListBox.SelectedItem);
             }
         }
     }

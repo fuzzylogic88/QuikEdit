@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:QuikEdit"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="800">
-    
+        Title="QuikEdit" Height="600" Width="800">
+
     <Grid>
         <!-- Define a 2-row, 2-column grid -->
         <Grid.RowDefinitions>
@@ -18,16 +18,23 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Border BorderBrush="Black" BorderThickness="1" Margin="10">
-            <Image x:Name="imageControl" Stretch="Uniform" Margin="10"/>
+        <Border Grid.Row="0" BorderBrush="Black" BorderThickness="1" Background="LightGray">
         </Border>
-        
+
+        <Image x:Name="imageControl" Stretch="Uniform" Margin="10"/>
+
         <!-- Main form controls -->
         <Button Grid.Column="1" Grid.Row="1" Content="Load" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="10" Width="100" Height="40" Click="LoadFileButton_Click"/>
         <Button Grid.Column="1" Grid.Row="1" Content="Save" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="10" Width="100" Height="40" Click="SaveFileButton_Click"/>
         <Button Grid.Column="0" Grid.Row="1" Content="Close" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="10" Width="100" Height="40" Click="CloseButton_Click"/>
-        
+
         <!-- Image adjusment controls -->
         <CheckBox Name="GrayscaleCheckBox" Content ="Grayscale" Grid.Row="0" Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200"  Margin="20" Click="GrayscaleCheckBox_Click"/>
+        <Button Name="RotateLeft90Button" Content="Rotate left 90" Grid.Row="0" Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Left" Width="100" Height="25" Margin="10,50,0,0" Click="RotateLeft90Button_Click"/>
+        <Button Name="RotateRight90Button" Content="Rotate right 90" Grid.Row="0" Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Left" Width="100" Height="25" Margin="125,50,0,0" Click="RotateRight90Button_Click"/>
+
+        <ListBox Name="FileCollectionListBox" Grid.Row="0" Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Left" Width="250" Height="375" Margin="10,80,0,0" SelectionChanged="FileCollectionListBox_SelectionChanged"/>
+        <Button Name="ConvertFilesButton" Content="Convert files" Grid.Row="0" Grid.Column="1" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="100" Height="25" Margin="0,0,10,20" Click="ConvertFilesButton_Click"/>
+        <Button Name="LoadFilesButton" Content="Load files" Grid.Row="0" Grid.Column="1" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="100" Height="25" Margin="10,0,10,20" Click="LoadFilesButton_Click"/>
     </Grid>
 </Window>
