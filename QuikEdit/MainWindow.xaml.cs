@@ -33,31 +33,44 @@ namespace QuikEdit
             Close();
         }
 
-        private void LoadFileButton_Click(object sender, RoutedEventArgs e)
+        private async void LoadFileButton_Click(object sender, RoutedEventArgs e)
         {
             Microsoft.Win32.OpenFileDialog openFileDialog = new();
             if (openFileDialog.ShowDialog() == true)
             {
-                PreviewNewImage(openFileDialog.FileName);
+                await PreviewNewImageAsync((string)FileCollectionListBox.SelectedItem);
             }
         }
 
-        private void PreviewNewImage(string filepath)
+
+        private async void FileCollectionListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (FileCollectionListBox.SelectedIndex != -1)
+            {
+                await PreviewNewImageAsync((string)FileCollectionListBox.SelectedItem);
+            }
+        }
+
+        private async Task PreviewNewImageAsync(string filepath)
         {
             initialBitmapImage = new BitmapImage(new Uri(filepath));
 
-            Dispatcher.Invoke(() =>
+            await Task.Run(() =>
             {
-                imageControl.Source = initialBitmapImage;
+                Dispatcher.Invoke(() =>
+                {
+                    GrayscaleCheckBox.IsChecked = false;
+                    imageControl.Source = initialBitmapImage;
+                });
+
+                using MemoryStream stream = new();
+                BitmapEncoder encoder = new JpegBitmapEncoder(); // Change the encoder based on your image format
+                encoder.Frames.Add(BitmapFrame.Create(initialBitmapImage));
+                encoder.Save(stream);
+
+                initialState = stream.ToArray();
+                modifiedImage = initialState;
             });
-
-            using MemoryStream stream = new();
-            BitmapEncoder encoder = new JpegBitmapEncoder(); // Change the encoder based on your image format
-            encoder.Frames.Add(BitmapFrame.Create(initialBitmapImage));
-            encoder.Save(stream);
-
-            initialState = stream.ToArray();
-            modifiedImage = initialState;
         }
 
         private void GrayscaleCheckBox_Click(object sender, RoutedEventArgs e)
@@ -167,6 +180,7 @@ namespace QuikEdit
                 {
                     FileCollectionListBox.Items.Add(image);
                 }
+                FileCollectionListBox.SelectedIndex = 0;
             }
         }
 
@@ -199,15 +213,15 @@ namespace QuikEdit
             }
         }
 
-        public void ConvertFiles(List<string> convertItems, string outputPath)
+        public static void ConvertFiles(List<string> convertItems, string outputPath)
         {
             try
             {
                 string fileType = ".jpg"; //temp
 
-                foreach (string image in convertItems)
+                Parallel.ForEach(convertItems, (image, parallelLoopState) =>
                 {
-                    using MagickImage img = new(image);
+                    using (MagickImage img = new(image))
                     {
                         string outFName = FilenameGenerator(outputPath, Path.GetFileNameWithoutExtension(image) + fileType);
 
@@ -217,12 +231,8 @@ namespace QuikEdit
                             img.Write(outFName);
                         }
                     }
-                    ProgressWindow.CurrentFile = FileCollectionListBox.Items.IndexOf(image);
-                }
-            }
-            catch (Exception ex)
-            {
-
+                    Interlocked.Increment(ref ProgressWindow.CurrentFile);
+                });
             }
             finally
             {
@@ -273,14 +283,6 @@ namespace QuikEdit
                 }
             }
             throw new Exception("Could not create unique filename in " + maxAttempts + " attempts");
-        }
-
-        private void FileCollectionListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (FileCollectionListBox.SelectedIndex != -1)
-            {
-                PreviewNewImage((string)FileCollectionListBox.SelectedItem);
-            }
         }
     }
 }

@@ -5,13 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:QuikEdit"
         mc:Ignorable="d"
-        Title="" Height="120" Width="300" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+        Title="" Height="120" Width="350" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
     <Grid>
-        <ProgressBar Name="PBar" Width="280" Value="0" Maximum="100" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,30,0,0">
+        <ProgressBar Name="PBar" Width="275" Value="0" Maximum="100" Height="20" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,50,0,0">
             <ProgressBar.Style>
                 <Style/>
             </ProgressBar.Style>
         </ProgressBar>
-        <TextBlock Name="StatusLabel" Text="Converting files..." VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Black" Margin="0,20,0,0"/>
+        <TextBlock Name="StatusLabel" Text="Converting files..." VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Black" Margin="0,15,0,0" FontSize="18" Height="24"/>
     </Grid>
 </Window>
