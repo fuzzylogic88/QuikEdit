@@ -11,10 +11,15 @@ namespace QuikEdit
         public static int CurrentFile = 0;
         public static int TotalFiles = 0;
 
-        public ProgressWindow()
+        private readonly MainWindow mwInstc;
+
+        public ProgressWindow(MainWindow _mwInstc)
         {
             InitializeComponent();
+            PBar.Value = 0;
+
             Task.Factory.StartNew(UpdateProgressBar);
+            mwInstc = _mwInstc;
         }
 
         public void UpdateProgressBar()
@@ -37,6 +42,12 @@ namespace QuikEdit
             }
             Thread.Sleep(250);
             Dispatcher.Invoke(Close);
+        }
+
+        private void CancelProcessButton_Click(object sender, RoutedEventArgs e)
+        {
+            StatusLabel.Text = "Cancelling...";
+            mwInstc.CancelOperation();
         }
     }
 }

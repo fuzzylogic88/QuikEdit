@@ -1,15 +1,14 @@
 ﻿using ImageMagick;
-using Microsoft.Win32;
+using Microsoft.VisualBasic.Devices;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Forms;
-
 using static QuikEdit.ImageOps;
-using System.Windows.Controls;
 
 namespace QuikEdit
 {
@@ -22,26 +21,15 @@ namespace QuikEdit
         public static byte[]? initialState;
         public static byte[]? modifiedImage;
 
+        private CancellationTokenSource cTokenSrc;
+
         public MainWindow()
         {
             RenderOptions.ProcessRenderMode = RenderMode.Default;
+            ResourceLimits.LimitMemory(new Percentage(95));
+
             InitializeComponent();
         }
-
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
-
-        private async void LoadFileButton_Click(object sender, RoutedEventArgs e)
-        {
-            Microsoft.Win32.OpenFileDialog openFileDialog = new();
-            if (openFileDialog.ShowDialog() == true)
-            {
-                await PreviewNewImageAsync((string)FileCollectionListBox.SelectedItem);
-            }
-        }
-
 
         private async void FileCollectionListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -175,7 +163,7 @@ namespace QuikEdit
             DialogResult result = folderDlg.ShowDialog();
             if (result == System.Windows.Forms.DialogResult.OK)
             {
-                var imgCollection = Directory.GetFiles(folderDlg.SelectedPath).Where(IsImageFile);
+                var imgCollection = Directory.EnumerateFiles(folderDlg.SelectedPath, "*", SearchOption.AllDirectories).Where(IsImageFile);
                 foreach (string image in imgCollection)
                 {
                     FileCollectionListBox.Items.Add(image);
@@ -186,6 +174,8 @@ namespace QuikEdit
 
         private void ConvertFilesButton_Click(object sender, RoutedEventArgs e)
         {
+            cTokenSrc = new();
+
             FolderBrowserDialog folderDlg = new()
             {
                 ShowNewFolderButton = true,
@@ -205,15 +195,19 @@ namespace QuikEdit
 
                 ProgressWindow.TotalFiles = convertItems.Count;
                 ProgressWindow.ProcessInProgress = true;
-                ProgressWindow pw = new() { Owner = this, };
+                ProgressWindow pw = new(this) { Owner = this, };
 
                 pw.Show();
 
-                Task.Run(() => ConvertFiles(convertItems, folderDlg.SelectedPath));
+                Task.Run(() => ConvertFiles(convertItems, folderDlg.SelectedPath, cTokenSrc.Token));
             }
         }
+        public void CancelOperation()
+        {
+            cTokenSrc?.Cancel();
+        }
 
-        public static void ConvertFiles(List<string> convertItems, string outputPath)
+        private static void ConvertFiles(List<string> convertItems, string outputPath, CancellationToken cToken)
         {
             try
             {
@@ -229,17 +223,28 @@ namespace QuikEdit
                         {
                             img.Quality = 100;
                             img.Write(outFName);
+                            img.Dispose();                      
                         }
+                        cToken.ThrowIfCancellationRequested();
                     }
                     Interlocked.Increment(ref ProgressWindow.CurrentFile);
                 });
             }
             finally
             {
-                Thread.Sleep(1000);
                 ProgressWindow.ProcessInProgress = false;
+                Thread.Sleep(1000);
+
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
             }
         }
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
 
         /// <summary>
         /// Generates a unique filename when provided destination folder and desired name.

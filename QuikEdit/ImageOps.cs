@@ -35,7 +35,7 @@ namespace QuikEdit
         public static bool IsImageFile(string filePath)
         {
             // Define your list of valid image file extensions
-            string[] validExtensions = [".BMP", ".JPG", ".GIF", ".PNG"];
+            string[] validExtensions = [".BMP", ".JPG", ".GIF", ".PNG", ".HEIC"];
             return validExtensions.Contains(Path.GetExtension(filePath), StringComparer.OrdinalIgnoreCase);
         }
     }
