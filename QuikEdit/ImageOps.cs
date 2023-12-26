@@ -29,13 +29,17 @@ namespace QuikEdit
                 ".gif" => ImageFormat.Gif,
                 ".jpg" or ".jpeg" => ImageFormat.Jpeg,
                 ".png" => ImageFormat.Png,
+                ".heic" => ImageFormat.Heif,
+                ".tif" or ".tiff" => ImageFormat.Tiff,
+                ".webp" => ImageFormat.Webp,
                 _ => ImageFormat.Png,// Default to PNG if the extension is not recognized
             };
         }
+
         public static bool IsImageFile(string filePath)
         {
             // Define your list of valid image file extensions
-            string[] validExtensions = [".BMP", ".JPG", ".GIF", ".PNG", ".HEIC"];
+            string[] validExtensions = [".BMP", ".JPG", ".JPEG", ".GIF", ".PNG", ".HEIC", ".TIFF", ".TIF", "WEBP"];
             return validExtensions.Contains(Path.GetExtension(filePath), StringComparer.OrdinalIgnoreCase);
         }
     }

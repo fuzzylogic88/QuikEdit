@@ -12,6 +12,7 @@ namespace QuikEdit
         public static int TotalFiles = 0;
 
         private readonly MainWindow mwInstc;
+        public bool CancellationCalled = false;
 
         public ProgressWindow(MainWindow _mwInstc)
         {
@@ -24,13 +25,14 @@ namespace QuikEdit
 
         public void UpdateProgressBar()
         {
-            while (ProcessInProgress)
+            while (ProcessInProgress && !CancellationCalled)
             {
                 try
                 {
                     int pbarVal = (int)Math.Round(CurrentFile / (decimal)TotalFiles * 100m, 0,MidpointRounding.AwayFromZero);
                     Dispatcher.Invoke(() =>
                     {
+                        StatusLabel.Text = "Saving images... (" + CurrentFile.ToString() + " of " + TotalFiles.ToString() + ")";
                         PBar.Value = pbarVal;
                     });
                     Thread.Sleep(150);
@@ -46,6 +48,8 @@ namespace QuikEdit
 
         private void CancelProcessButton_Click(object sender, RoutedEventArgs e)
         {
+            CancellationCalled = true;
+            Thread.Sleep(200);
             StatusLabel.Text = "Cancelling...";
             mwInstc.CancelOperation();
         }

@@ -1,5 +1,6 @@
 ﻿using ImageMagick;
 using Microsoft.VisualBasic.Devices;
+using System.Collections.Concurrent;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -26,8 +27,6 @@ namespace QuikEdit
         public MainWindow()
         {
             RenderOptions.ProcessRenderMode = RenderMode.Default;
-            ResourceLimits.LimitMemory(new Percentage(95));
-
             InitializeComponent();
         }
 
@@ -122,7 +121,6 @@ namespace QuikEdit
             }
         }
 
-
         private void RotateLeft90Button_Click(object sender, RoutedEventArgs e)
         {
             if (modifiedImage != null)
@@ -192,7 +190,7 @@ namespace QuikEdit
             if (result == System.Windows.Forms.DialogResult.OK)
             {
                 List<string> convertItems = FileCollectionListBox.Items.Cast<string>().ToList();
-
+                ProgressWindow.CurrentFile = 0;
                 ProgressWindow.TotalFiles = convertItems.Count;
                 ProgressWindow.ProcessInProgress = true;
                 ProgressWindow pw = new(this) { Owner = this, };
@@ -213,38 +211,44 @@ namespace QuikEdit
             {
                 string fileType = ".jpg"; //temp
 
-                Parallel.ForEach(convertItems, (image, parallelLoopState) =>
-                {
-                    using (MagickImage img = new(image))
+                var partitioner = Partitioner.Create(convertItems, true);
+                Parallel.ForEach(partitioner,
+                    new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                    (image, parallelLoopState) =>
                     {
-                        string outFName = FilenameGenerator(outputPath, Path.GetFileNameWithoutExtension(image) + fileType);
-
-                        if (!string.IsNullOrEmpty(outFName))
-                        {
-                            img.Quality = 100;
-                            img.Write(outFName);
-                            img.Dispose();                      
-                        }
                         cToken.ThrowIfCancellationRequested();
-                    }
-                    Interlocked.Increment(ref ProgressWindow.CurrentFile);
-                });
+                        using (MagickImage img = new(image))
+                        {
+                            string outFName = FilenameGenerator(outputPath, Path.GetFileNameWithoutExtension(image) + fileType);
+
+                            if (!string.IsNullOrEmpty(outFName))
+                            {
+                                img.Quality = 100;
+                                img.Write(outFName);
+                            }
+                        }
+                        Interlocked.Increment(ref ProgressWindow.CurrentFile);
+                    });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
             finally
             {
                 ProgressWindow.ProcessInProgress = false;
-                Thread.Sleep(1000);
+                Thread.Sleep(250);
 
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
             }
         }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }
-
 
         /// <summary>
         /// Generates a unique filename when provided destination folder and desired name.
