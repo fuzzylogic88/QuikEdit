@@ -1,11 +1,4 @@
-﻿/* 
- * QuikEdit
- * Daniel Green, 2023
- * 
- * A small photo viewer/editor/conversion tool using WPF
- */
- 
-using ImageMagick;
+﻿using ImageMagick;
 using Microsoft.VisualBasic.Devices;
 using System.Collections.Concurrent;
 using System.Drawing.Imaging;

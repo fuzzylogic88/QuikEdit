@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="" Height="140" Width="350" WindowStartupLocation="CenterOwner" Background="Transparent" AllowsTransparency="True" WindowStyle="None" ResizeMode="NoResize">
     <Grid>
-        <Rectangle Fill="White" RadiusX="10" RadiusY="10" Stroke="#0096D6" StrokeThickness="2"/>
+        <Rectangle Fill="White" RadiusX="10" RadiusY="10" Stroke="#0096D6" StrokeThickness="1"/>
         <ProgressBar Name="PBar" Width="275" Value="0" Maximum="100" Height="20" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,50,0,0"></ProgressBar>
         <TextBlock Name="StatusLabel" Text="Saving images..." VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Black" Margin="0,15,0,0" FontSize="18" Height="24"/>
         <Button Name="CancelProcessButton" Content="Cancel" Grid.Row="0" Grid.Column="1" VerticalAlignment="Bottom" HorizontalAlignment="Center" Width="100" Height="25" Margin="0,0,0,30" Click="CancelProcessButton_Click"/>

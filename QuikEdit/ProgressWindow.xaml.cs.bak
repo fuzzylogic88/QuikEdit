@@ -1,11 +1,4 @@
-﻿/* 
- * QuikEdit
- * Daniel Green, 2023
- * 
- * A small photo viewer/editor/conversion tool using WPF
- */
- 
-using System.Windows;
+﻿using System.Windows;
 
 namespace QuikEdit
 {
